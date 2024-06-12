@@ -2,15 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Prediction Results</title>
+    <title>Prediction Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Prediction Results</h1>
-    <ul>
-        {% for prediction in predictions %}
-            <li>{{ prediction }}</li>
-        {% endfor %}
-    </ul>
-    <a href="/">Go back</a>
+    <div class="container">
+        <h1>Prediction Result</h1>
+        <p>Prediction Date: {{ prediction_date }}</p>
+        <p>Predicted Price: {{ predicted_price }}</p>
+
+        <p>Predicted Graph</p>
+        <img src="data:image/png;base64,{{ plot_url }}">
+        <br>
+        <a href="/">Back</a>
+    </div>
 </body>
 </html>

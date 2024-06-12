@@ -1,69 +1,90 @@
-from flask import Flask, request, render_template
+from flask import Flask, render_template, request
 import pandas as pd
 import numpy as np
+import joblib
+import tensorflow as tf
 from tensorflow.keras.models import load_model
-from sklearn.preprocessing import MinMaxScaler
-import datetime
+import matplotlib.pyplot as plt
+import io
+import base64
 
 app = Flask(__name__)
 
-# Load pre-trained model
-model = load_model('stock_prediction_model.h5')
+# Load the model and scaler
+model = load_model('models/stock_prediction_model.h5')
+scaler = joblib.load('models/scaler.pkl')
 
-# Load the default dataset
-default_data = pd.read_csv('tesla.csv')
-default_data["Date"] = pd.to_datetime(default_data["Date"])
-default_data.set_index('Date', inplace=True)
-scaler = MinMaxScaler(feature_range=(0, 1))
-default_scaled_data = scaler.fit_transform(default_data[['Close']])
+# List of datasets
+datasets = {
+    'Tesla': 'datasets/tesla.csv',
+    'Apple': 'datasets/apple.csv',
+    'LG': 'datasets/lgtelevision.csv',
+    'Netflix': 'datasets/netflix.csv',
+    'Google': 'datasets/google.csv'
+}
 
 def create_dataset(data, time_step=1):
-    X = []
-    for i in range(len(data) - time_step):
-        a = data[i:(i + time_step), 0]
+    X, y = [], []
+    for i in range(len(data) - time_step - 1):
+        a = data[i:(i + time_step)]
         X.append(a)
-    return np.array(X)
+        y.append(data[i + time_step, 3])  # 3 is the index for 'Close' column
+    return np.array(X), np.array(y)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', datasets=datasets.keys())
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    predictions = []
-    
-    if 'file' in request.files and request.files['file'].filename != '':
-        file = request.files['file']
-        data = pd.read_csv(file)
-        data["Date"] = pd.to_datetime(data["Date"])
-        data.set_index('Date', inplace=True)
-        data = data[['Close']]
-        scaled_data = scaler.fit_transform(data.values)
-        time_step = 60
-        X = create_dataset(scaled_data, time_step)
-        X = X.reshape(X.shape[0], X.shape[1], 1)
-        predictions = model.predict(X)
-        predictions = scaler.inverse_transform(predictions)
-        predictions = predictions.tolist()
-    
-    elif 'date' in request.form:
-        date_str = request.form['date']
-        input_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
-        
-        if input_date in default_data.index:
-            idx = default_data.index.get_loc(input_date)
-            if idx >= 60:
-                input_data = default_scaled_data[idx-60:idx]
-                input_data = input_data.reshape(1, 60, 1)
-                prediction = model.predict(input_data)
-                prediction = scaler.inverse_transform(prediction)
-                predictions.append(prediction[0][0])
-            else:
-                predictions.append("Not enough data to predict for this date.")
-        else:
-            predictions.append("Date is out of range of the dataset.")
-    
-    return render_template('result.html', predictions=predictions)
+    dataset_name = request.form['dataset']
+    file_path = datasets[dataset_name]
+
+    # Load the dataset
+    df = pd.read_csv(file_path)
+    df['Date'] = pd.to_datetime(df['Date'])
+    df.set_index('Date', inplace=True)
+
+    # Normalize the data
+    scaled_data = scaler.transform(df)
+
+    # Get user input for prediction date
+    prediction_date = request.form['date']
+    prediction_date = pd.to_datetime(prediction_date)
+
+    if prediction_date not in df.index:
+        available_dates = f"{df.index.min().date()} to {df.index.max().date()}"
+        return f"Date out of range. Available dates are: {available_dates}"
+
+    time_step = 60
+    x_test = []
+    for i in range(time_step, len(df)):
+        x_test.append(scaled_data[i-time_step:i])
+
+    x_test = np.array(x_test)
+    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], x_test.shape[2]))
+
+    y_pred = model.predict(x_test)
+    predicted_price = scaler.inverse_transform(np.concatenate((np.zeros((y_pred.shape[0], scaled_data.shape[1]-1)), y_pred), axis=1))[:, -1]
+
+    predicted_price_on_date = predicted_price[df.index.get_loc(prediction_date)]
+
+    # Plotting the results
+    fig, ax = plt.subplots(figsize=(14, 7))
+    ax.plot(df.index, df['Close'], label='Actual Stock Price')
+    ax.plot(df.index[time_step:], predicted_price, label='Predicted Stock Price')
+    ax.axvline(x=prediction_date, color='r', linestyle='--', label=f'Prediction Date: {prediction_date.date()}')
+    ax.set_title('Stock Price Prediction')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Stock Price')
+    ax.legend()
+
+    img = io.BytesIO()
+    plt.savefig(img, format='png')
+    img.seek(0)
+    plot_url = base64.b64encode(img.getvalue()).decode()
+
+    return render_template('result.html', plot_url=plot_url, prediction_date=prediction_date.date(), predicted_price=predicted_price_on_date)
 
 if __name__ == '__main__':
     app.run(debug=True)
