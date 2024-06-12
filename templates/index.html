@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Price Prediction</title>
+</head>
+<body>
+    <h1>Stock Price Prediction</h1>
+    <form action="/predict" method="post" enctype="multipart/form-data">
+        <h2>Upload a Dataset and Predict its stock price</h2>
+        <input type="file" name="file"><br><br>
+        <label for="date">Date:</label>
+        <input type="date" name="date"><br><br>
+        <input type="submit" value="Predict">
+    </form>
+    <br>
+    <br>
+    <p> Do you want to predict Tesla stock prices?</p>
+    <form action="/predict" method="post" enctype="multipart/form-data">
+        <h2>Predict Tesla Stock Price</h2>
+        <label for="date">Date:</label>
+        <input type="date" name="date"><br><br>
+        <input type="submit" value="Predict">
+    </form>
+</body>
+</html>
