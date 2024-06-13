@@ -17,7 +17,7 @@ scaler = joblib.load('models/scaler.pkl')
 datasets = {
     'tesla': 'scaled_datasets/scaled_tesla.csv',
     'apple': 'scaled_datasets/scaled_apple.csv',
-    'lgtelevision': 'scaled_datasets/scaled_lgtelevision.csv',
+    'lgtelevision': 'scaled_datasets/scaled_lg.csv',
     'netflix': 'scaled_datasets/scaled_netflix.csv',
     'google': 'scaled_datasets/scaled_google.csv'
 }
@@ -96,21 +96,7 @@ def predict_custom():
     adjustment_factor = open_price / df['Open'].iloc[-1]
     adjusted_predicted_price_on_date = predicted_price_on_date * adjustment_factor
 
-    # Plotting the results
-    fig, ax = plt.subplots(figsize=(14, 7))
-    ax.plot(df.index[time_step:], predicted_price, label='Predicted Stock Price')
-    ax.axvline(x=custom_date, color='r', linestyle='--', label=f'Prediction Date: {custom_date.date()}')
-    ax.set_title('Stock Price Prediction with Custom Open Price')
-    ax.set_xlabel('Date')
-    ax.set_ylabel('Stock Price')
-    ax.legend()
-
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    plot_url = base64.b64encode(img.getvalue()).decode()
-
-    return render_template('result.html', plot_url=plot_url, prediction_date=custom_date.date(), predicted_price=adjusted_predicted_price_on_date)
+    return render_template('result.html', prediction_date=custom_date.date(), predicted_price=adjusted_predicted_price_on_date)
 
 if __name__ == '__main__':
     app.run(debug=True)
