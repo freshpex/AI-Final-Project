@@ -5,3 +5,4 @@ tensorflow
 numpy
 matplotlib
 joblib
+gunicorn
