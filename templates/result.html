@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prediction Result</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
+    <header>
         <h1>Prediction Result</h1>
-        <p>Prediction Date: {{ prediction_date }}</p>
-        <p>Predicted Price: {{ predicted_price }}</p>
-
-        <p>Predicted Graph</p>
-        <img src="data:image/png;base64,{{ plot_url }}">
-        <br>
-        <a href="/">Back</a>
+    </header>
+    <div class="container">
+        <h2>Prediction Results</h2>
+        <p>Predicted Close Price for {{ company }} on {{ prediction_date }}: {{ predicted_price }}</p>
+        <img src="data:image/png;base64,{{ plot_url }}" alt="Prediction Graph">
+        <a href="/">Back to Home</a>
     </div>
 </body>
 </html>
