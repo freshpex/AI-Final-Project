@@ -24,11 +24,13 @@
         <form action="/predict" method="post" onsubmit="return showLoading(this.querySelector('input[type=submit]'));">
             <label for="company">Select Company:</label>
             <select name="company" id="company">
+                <option value="microsoft">Microsoft</option>
+                <option value="amazon">Amazon</option>
+                <option value="google">Google</option>
                 <option value="tesla">Tesla</option>
                 <option value="apple">Apple</option>
                 <option value="lgtelevision">LG Television</option>
                 <option value="netflix">Netflix</option>
-                <option value="google">Google</option>
             </select>
 
             <label for="date">Select Date:</label>
@@ -44,12 +46,14 @@
         <p>Enter Custom Open Price and Date:</p>
         <form action="/predict_custom" method="post" onsubmit="return showLoading(this.querySelector('input[type=submit]'));">
             <label for="company_custom">Select Company:</label>
-            <select name="company_custom" id="company_custom">
+            <select name="company_custom" id="company_custom">                
+                <option value="microsoft">Microsoft</option>
+                <option value="amazon">Amazon</option>                
+                <option value="google">Google</option>
                 <option value="tesla">Tesla</option>
                 <option value="apple">Apple</option>
                 <option value="lgtelevision">LG Television</option>
                 <option value="netflix">Netflix</option>
-                <option value="google">Google</option>
             </select>
 
             <label for="open_price">Enter Open Price:</label>

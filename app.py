@@ -19,7 +19,9 @@ datasets = {
     'apple': 'datasets/apple.csv',
     'lgtelevision': 'datasets/lgtelevision.csv',
     'netflix': 'datasets/netflix.csv',
-    'google': 'datasets/google.csv'
+    'google': 'datasets/google.csv',
+    'amazon': 'datasets/amazon.csv',
+    'microsoft': 'datasets/msft.csv'
 }
 
 def prepare_data_for_prediction(data, time_step=60):
