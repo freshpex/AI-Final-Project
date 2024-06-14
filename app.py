@@ -9,18 +9,12 @@ import base64
 
 app = Flask(__name__)
 
-# Load the model and scaler
-model = load_model('models/stock_prediction_model.h5')
-scaler = joblib.load('models/scaler.pkl')
+# Load the model and scalers
+model = load_model('combined_stock_prediction_model.h5')
+scalers = {company: joblib.load(f'scaler_{company}.pkl') for company in ['Apple', 'LG', 'Tesla', 'Google', 'Netflix']}
 
-# List of datasets
-datasets = {
-    'tesla': 'scaled_datasets/scaled_tesla.csv',
-    'apple': 'scaled_datasets/scaled_apple.csv',
-    'lgtelevision': 'scaled_datasets/scaled_lg.csv',
-    'netflix': 'scaled_datasets/scaled_netflix.csv',
-    'google': 'scaled_datasets/scaled_google.csv'
-}
+# Load combined dataset
+df = pd.read_csv('path/to/combined_stock_data.csv')
 
 @app.route('/')
 def index():
@@ -32,29 +26,31 @@ def predict():
     date_str = request.form['date']
     date = pd.to_datetime(date_str)
 
-    # Load the appropriate dataset
-    df = pd.read_csv(datasets[company], index_col='Date', parse_dates=True)
-    
-    if date not in df.index:
-        available_dates = f"{df.index.min().date()} to {df.index.max().date()}"
+    # Validate date
+    company_data = df[df['Company'] == company]
+    if date not in company_data['Date'].values:
+        available_dates = f"{company_data['Date'].min().date()} to {company_data['Date'].max().date()}"
         return f"Date out of range. Available dates are: {available_dates}"
 
     # Prepare data for prediction
     time_step = 60
+    scaler = scalers[company]
+    company_scaled_data = company_data.drop(['Company', 'Date'], axis=1).values
+    scaled_values = scaler.transform(company_scaled_data)
+
     x_test = []
-    for i in range(time_step, len(df)):
-        x_test.append(df.iloc[i-time_step:i].values)
+    for i in range(time_step, len(company_scaled_data)):
+        x_test.append(scaled_values[i-time_step:i])
 
     x_test = np.array(x_test)
-    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], x_test.shape[2]))
-
     y_pred = model.predict(x_test)
-    predicted_price = scaler.inverse_transform(np.concatenate((np.zeros((y_pred.shape[0], df.shape[1]-1)), y_pred), axis=1))[:, -1]
-    predicted_price_on_date = predicted_price[df.index.get_loc(date) - time_step]
+    predicted_price = scaler.inverse_transform(np.concatenate((np.zeros((y_pred.shape[0], company_scaled_data.shape[1]-1)), y_pred), axis=1))[:, -1]
+    predicted_price_on_date = predicted_price[company_data['Date'].get_loc(date) - time_step]
 
     # Plotting the results
     fig, ax = plt.subplots(figsize=(14, 7))
-    ax.plot(df.index[time_step:], predicted_price, label='Predicted Stock Price')
+    ax.plot(company_data['Date'], company_data['Close'], label='Actual Stock Price')
+    ax.plot(company_data['Date'][time_step:], predicted_price, label='Predicted Stock Price')
     ax.axvline(x=date, color='r', linestyle='--', label=f'Prediction Date: {date.date()}')
     ax.set_title('Stock Price Prediction')
     ax.set_xlabel('Date')
@@ -68,6 +64,7 @@ def predict():
 
     return render_template('result.html', plot_url=plot_url, prediction_date=date.date(), predicted_price=predicted_price_on_date)
 
+
 @app.route('/predict_custom', methods=['POST'])
 def predict_custom():
     company = request.form['company_custom']
@@ -76,7 +73,7 @@ def predict_custom():
     custom_date = pd.to_datetime(custom_date_str)
 
     # Load the appropriate dataset
-    df = pd.read_csv(datasets[company], index_col='Date', parse_dates=True)
+    df = pd.read_csv(f'datasets/{company}.csv', index_col='Date', parse_dates=True)
     
     # Prepare data for prediction
     time_step = 60
