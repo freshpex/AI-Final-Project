@@ -15,12 +15,19 @@ scaler = joblib.load('models/scaler.pkl')
 
 # List of datasets
 datasets = {
-    'tesla': 'scaled_datasets/scaled_tesla.csv',
-    'apple': 'scaled_datasets/scaled_apple.csv',
-    'lgtelevision': 'scaled_datasets/scaled_lg.csv',
-    'netflix': 'scaled_datasets/scaled_netflix.csv',
-    'google': 'scaled_datasets/scaled_google.csv'
+    'tesla': 'datasets/tesla.csv',
+    'apple': 'datasets/apple.csv',
+    'lgtelevision': 'datasets/lgtelevision.csv',
+    'netflix': 'datasets/netflix.csv',
+    'google': 'datasets/google.csv'
 }
+
+def prepare_data_for_prediction(data, time_step=60):
+    scaled_data = scaler.transform(data[['Close']])
+    X = []
+    for i in range(time_step, len(scaled_data)):
+        X.append(scaled_data[i-time_step:i, 0])
+    return np.array(X).reshape(-1, time_step, 1)
 
 @app.route('/')
 def index():
@@ -41,14 +48,9 @@ def predict():
 
     # Prepare data for prediction
     time_step = 60
-    x_test = []
-    for i in range(time_step, len(df)):
-        x_test.append(df.iloc[i-time_step:i].values)
+    X_test = prepare_data_for_prediction(df)
 
-    x_test = np.array(x_test)
-    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], x_test.shape[2]))
-
-    y_pred = model.predict(x_test)
+    y_pred = model.predict(X_test)
     predicted_price = scaler.inverse_transform(np.concatenate((np.zeros((y_pred.shape[0], df.shape[1]-1)), y_pred), axis=1))[:, -1]
     predicted_price_on_date = predicted_price[df.index.get_loc(date) - time_step]
 
@@ -80,15 +82,10 @@ def predict_custom():
     
     # Prepare data for prediction
     time_step = 60
-    x_test = []
-    for i in range(time_step, len(df)):
-        x_test.append(df.iloc[i-time_step:i].values)
-
-    x_test = np.array(x_test)
-    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], x_test.shape[2]))
+    X_test = prepare_data_for_prediction(df)
 
     # Predict using the model
-    y_pred = model.predict(x_test)
+    y_pred = model.predict(X_test)
     predicted_price = scaler.inverse_transform(np.concatenate((np.zeros((y_pred.shape[0], df.shape[1]-1)), y_pred), axis=1))[:, -1]
     predicted_price_on_date = predicted_price[-1]
 
